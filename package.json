@@ -8,18 +8,18 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/frorong/-auto-download-icons.git"
+    "url": "git+https://github.com/frorong/auto-fetch-icons.git"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/frorong/-auto-download-icons/issues"
+    "url": "https://github.com/frorong/auto-fetch-icons/issues"
   },
   "bin": {
     "fetch-icons": "./index.js"
   },
-  "homepage": "https://github.com/frorong/-auto-download-icons#readme",
+  "homepage": "https://github.com/frorong/auto-fetch-icons#readme",
   "dependencies": {
     "node-fetch": "^3.3.2",
     "yargs": "^17.7.2"
