@@ -122,10 +122,15 @@ function downloadSvgs(svgUrls, outputDir) {
   Object.entries(svgUrls).forEach(async ([id, url]) => {
     const name = iconNameMap[id] || id;
     try {
+      const filePath = path.join(outputDir, `${name}.svg`);
+      if (fs.existsSync(filePath)) {
+        console.log(`⏭️ ${name}.svg 이미 존재합니다`);
+        return;
+      }
       const res = await fetch(url);
       const svgText = await res.text();
       const cleanedSvg = svgText.replace(/(width|height)="[^"]*"/g, "");
-      fs.writeFileSync(path.join(outputDir, `${name}.svg`), cleanedSvg);
+      fs.writeFileSync(filePath, cleanedSvg);
       console.log(`✅ ${name}.svg 다운로드 완료`);
     } catch (err) {
       console.error(`❌ ${name}.svg 다운로드 실패: ${err.message}`);
