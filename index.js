@@ -8,7 +8,7 @@ const fetch = (...args) =>
   import("node-fetch").then(({ default: fetch }) => fetch(...args));
 
 const argv = yargs(hideBin(process.argv))
-  .usage("Usage: $0 -f [fileId] -t [token]")
+  .usage("Usage: $0 -f [fileId] -t [token] -r [rule]")
   .option("fileId", {
     alias: "f",
     type: "string",
@@ -20,6 +20,12 @@ const argv = yargs(hideBin(process.argv))
     type: "string",
     description: "피그마 API 토큰",
     demandOption: true,
+  })
+  .option("rule", {
+    alias: "r",
+    type: "string",
+    description: "컴포넌트 이름 규칙 (예: 'icon/*', 'NAME=*')",
+    default: "Name=",
   })
   .option("output", {
     alias: "o",
@@ -33,6 +39,7 @@ const config = {
   fileId: argv.fileId,
   token: argv.token,
   outputDir: argv.output ?? "./icons",
+  nameRule: argv.rule,
 };
 
 const iconNameMap = {};
@@ -53,18 +60,27 @@ async function getFileData(fileId, token) {
   return response.json();
 }
 
+function createNameMatcher(rule) {
+  // '*'를 정규식 패턴으로 변환
+  const pattern = rule
+    .replace(/[.*+?^${}()|[\]\\]/g, "\\$&") // 특수문자 이스케이프
+    .replace("\\*", ".*"); // *를 .*로 변환
+  return new RegExp(pattern);
+}
+
 // 2. dfs를 돌며 유효한 컴포넌트만 컴포넌트 아이디를 추출합니다.
 function extractComponentIds(fileData) {
   const componentIds = [];
+  const nameMatcher = createNameMatcher(config.nameRule);
 
   const traverseNodes = (node) => {
-    if (node.type === "COMPONENT" && node.name.includes("Name=")) {
-      const nameMatch = node.name.match(/Name=(.*?)(?:,|$)/);
-
-      if (nameMatch) {
-        const iconName = nameMatch[1];
+    if (node.type === "COMPONENT") {
+      if (nameMatcher.test(node.name)) {
         componentIds.push(node.id);
-        iconNameMap[node.id] = iconName;
+        const nameMatch = node.name.split(config.nameRule)[1];
+        iconNameMap[node.id] = nameMatch
+          ? nameMatch.split(",")[0]
+          : node.name.replaceAll("/", "");
       }
     }
     if (node.children) {
@@ -98,7 +114,7 @@ async function getSvgUrls(fileId, token, componentIds) {
 }
 
 // 4. svg 이미지 url을 이용해 svg 파일을 다운로드합니다.
-function downloadSvgs(svgUrls, componentIds, outputDir) {
+function downloadSvgs(svgUrls, outputDir) {
   if (!fs.existsSync(outputDir)) {
     fs.mkdirSync(outputDir, { recursive: true });
   }
@@ -138,7 +154,7 @@ function downloadSvgs(svgUrls, componentIds, outputDir) {
     console.log("🔗 SVG URL 가져오기 성공");
 
     // 4. SVG 다운로드
-    downloadSvgs(svgUrls, iconNameMap, config.outputDir);
+    downloadSvgs(svgUrls, config.outputDir);
   } catch (err) {
     console.error(`❌ 오류: ${err.message}`);
   }
